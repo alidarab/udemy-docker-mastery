@@ -23,12 +23,16 @@ Use the new `--mount` format to do this: `--mount type=volume,source=db-data,tar
   - on frontend network
   - 2+ replicas of this container
 
+  sudo docker service create --name vote -p 80:80 --network frontend --replicas 2  bretfisher/examplevotingapp_vote
+
 - redis
   - redis:3.2
   - key-value storage for incoming votes
   - no public ports
   - on frontend network
   - 1 replica NOTE VIDEO SAYS TWO BUT ONLY ONE NEEDED
+
+  sudo docker service create --name redis --network frontend redis:3.2
 
 - worker
   - bretfisher/examplevotingapp_worker
@@ -37,12 +41,22 @@ Use the new `--mount` format to do this: `--mount type=volume,source=db-data,tar
   - on frontend and backend networks
   - 1 replica
 
+sudo docker service create --name worker --network frontend bretfisher/examplevotingapp_worker
+
+sudo docker service update --network-add backend worker
+
 - db
   - postgres:9.4
   - one named volume needed, pointing to /var/lib/postgresql/data
   - on backend network
   - 1 replica
   - remember set env for password-less connections -e POSTGRES_HOST_AUTH_METHOD=trust
+  
+sudo docker service create -d \
+--mount source=db_volume,target=/var/lib/postgresql/data \
+--name db --network backend \
+-e POSTGRES_HOST_AUTH_METHOD=trust \
+postgres:9.4
 
 - result
   - bretfisher/examplevotingapp_result
@@ -51,3 +65,9 @@ Use the new `--mount` format to do this: `--mount type=volume,source=db-data,tar
   - so run on a high port of your choosing (I choose 5001), container listens on 80
   - on backend network
   - 1 replica
+
+sudo docker service create -d \
+--name result \
+-p 666:80 \
+--network backend \
+bretfisher/examplevotingapp_result
